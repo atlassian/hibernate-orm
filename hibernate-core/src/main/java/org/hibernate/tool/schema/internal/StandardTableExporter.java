@@ -90,7 +90,7 @@ public class StandardTableExporter implements Exporter<Table> {
 			else {
 				buf.append( col.getSqlType( dialect, metadata )  );
 
-				String defaultValue = col.getDefaultValue();
+				String defaultValue = col.getDefaultValue(dialect, metadata);
 				if ( defaultValue != null ) {
 					buf.append( " default " ).append( defaultValue );
 				}

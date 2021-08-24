@@ -28,6 +28,9 @@ import org.hibernate.boot.model.relational.Namespace;
 import org.hibernate.boot.model.relational.QualifiedTableName;
 import org.hibernate.boot.model.relational.SqlStringGenerationContext;
 import org.hibernate.dialect.Dialect;
+import org.hibernate.engine.jdbc.env.spi.IdentifierHelper;
+import org.hibernate.engine.jdbc.env.spi.JdbcEnvironment;
+import org.hibernate.engine.jdbc.env.spi.QualifiedObjectNameFormatter;
 import org.hibernate.engine.spi.Mapping;
 import org.hibernate.tool.hbm2ddl.ColumnMetadata;
 import org.hibernate.tool.hbm2ddl.TableMetadata;
@@ -455,7 +458,7 @@ public class Table implements RelationalModel, Serializable, Exportable {
 						.append( ' ' )
 						.append( column.getSqlType( dialect, metadata ) );
 
-				String defaultValue = column.getDefaultValue();
+				String defaultValue = column.getDefaultValue( dialect, metadata );
 				if ( defaultValue != null ) {
 					alter.append( " default " ).append( defaultValue );
 				}
@@ -540,7 +543,7 @@ public class Table implements RelationalModel, Serializable, Exportable {
 
 				buf.append( col.getSqlType( dialect, p ) );
 
-				String defaultValue = col.getDefaultValue();
+				String defaultValue = col.getDefaultValue( dialect, p );
 				if ( defaultValue != null ) {
 					buf.append( " default " ).append( defaultValue );
 				}
