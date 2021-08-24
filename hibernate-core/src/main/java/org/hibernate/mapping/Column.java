@@ -17,6 +17,7 @@ import org.hibernate.engine.spi.Mapping;
 import org.hibernate.internal.util.StringHelper;
 import org.hibernate.loader.internal.AliasConstantsHelper;
 import org.hibernate.sql.Template;
+import org.hibernate.type.descriptor.sql.BooleanTypeDescriptor;
 
 import static org.hibernate.internal.util.StringHelper.safeInterning;
 
@@ -336,6 +337,18 @@ public class Column implements Selectable, Serializable, Cloneable {
 
 	public String getDefaultValue() {
 		return defaultValue;
+	}
+	
+	public String getDefaultValue(final Dialect dialect, final Mapping mapping) {
+		if (defaultValue == null || !defaultValue.equalsIgnoreCase("true") && !defaultValue.equalsIgnoreCase("false")) {
+			return defaultValue;
+		}
+		final int dialectBooleanSqlType = dialect.remapSqlTypeDescriptor(BooleanTypeDescriptor.INSTANCE).getSqlType();
+		final int columnSqlType = sqlTypeCode != null ? sqlTypeCode : getSqlTypeCode(mapping);
+		if (columnSqlType == dialectBooleanSqlType) {
+			return defaultValue;
+		}
+		return dialect.toBooleanValueString(Boolean.parseBoolean(defaultValue));
 	}
 
 	public void setDefaultValue(String defaultValue) {
