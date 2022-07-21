@@ -455,7 +455,7 @@ public class Table implements RelationalModel, Serializable, Exportable {
 						.append( ' ' )
 						.append( column.getSqlType( dialect, metadata ) );
 
-				String defaultValue = column.getDefaultValue();
+				String defaultValue = column.getDefaultValue( dialect, metadata );
 				if ( defaultValue != null ) {
 					alter.append( " default " ).append( defaultValue );
 				}
@@ -540,7 +540,7 @@ public class Table implements RelationalModel, Serializable, Exportable {
 
 				buf.append( col.getSqlType( dialect, p ) );
 
-				String defaultValue = col.getDefaultValue();
+				String defaultValue = col.getDefaultValue( dialect, p );
 				if ( defaultValue != null ) {
 					buf.append( " default " ).append( defaultValue );
 				}
