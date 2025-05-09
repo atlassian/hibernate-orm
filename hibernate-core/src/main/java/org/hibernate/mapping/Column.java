@@ -37,6 +37,7 @@ import org.hibernate.type.descriptor.jdbc.JdbcType;
 import org.hibernate.type.descriptor.sql.DdlType;
 import org.hibernate.type.descriptor.sql.spi.DdlTypeRegistry;
 import org.hibernate.type.spi.TypeConfiguration;
+import org.hibernate.type.descriptor.sql.BooleanTypeDescriptor;
 
 import static java.util.Collections.unmodifiableList;
 import static org.hibernate.internal.util.StringHelper.isEmpty;
@@ -741,6 +742,18 @@ public class Column implements Selectable, Serializable, Cloneable, ColumnTypeIn
 	
 	public String getDefaultValue() {
 		return defaultValue;
+	}
+
+	public String getDefaultValue(final Dialect dialect, final Mapping mapping) {
+		if (defaultValue == null || !defaultValue.equalsIgnoreCase("true") && !defaultValue.equalsIgnoreCase("false")) {
+			return defaultValue;
+		}
+		final int dialectBooleanSqlType = dialect.remapSqlTypeDescriptor(BooleanTypeDescriptor.INSTANCE).getSqlType();
+		final int columnSqlType = sqlTypeCode != null ? sqlTypeCode : getSqlTypeCode(mapping);
+		if (columnSqlType == dialectBooleanSqlType) {
+			return defaultValue;
+		}
+		return dialect.toBooleanValueString(Boolean.parseBoolean(defaultValue));
 	}
 
 	public void setDefaultValue(String defaultValue) {
