@@ -198,7 +198,7 @@ class ColumnDefinitions {
 				definition.append(" collate ").append( dialect.quoteCollation( collation ) );
 			}
 
-			final String defaultValue = column.getDefaultValue(metadata, dialect);
+			final String defaultValue = column.getDefaultValue(dialect, metadata);
 			if ( defaultValue != null ) {
 				definition.append( " default " ).append( defaultValue );
 			}
