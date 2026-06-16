@@ -5,6 +5,8 @@
  * See the lgpl.txt file in the root directory or <http://www.gnu.org/licenses/lgpl-2.1.html>.
  */
 package org.hibernate.type;
+
+import org.hibernate.dialect.Dialect;
 import org.hibernate.type.descriptor.java.StringTypeDescriptor;
 import org.hibernate.type.descriptor.sql.LongVarcharTypeDescriptor;
 
@@ -15,7 +17,7 @@ import org.hibernate.type.descriptor.sql.LongVarcharTypeDescriptor;
  * @author Bertrand Renuart
  * @author Steve Ebersole
  */
-public class TextType extends AbstractSingleColumnStandardBasicType<String> {
+public class TextType extends AbstractSingleColumnStandardBasicType<String> implements LiteralType<String> {
 	public static final TextType INSTANCE = new TextType();
 
 	public TextType() {
@@ -24,6 +26,11 @@ public class TextType extends AbstractSingleColumnStandardBasicType<String> {
 
 	public String getName() { 
 		return "text";
+	}
+
+	@Override
+	public String objectToSQLString(String value, Dialect dialect) throws Exception {
+		return StringType.INSTANCE.objectToSQLString( value, dialect );
 	}
 
 }
