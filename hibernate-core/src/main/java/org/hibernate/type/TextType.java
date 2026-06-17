@@ -24,13 +24,13 @@ public class TextType extends AbstractSingleColumnStandardBasicType<String> impl
 		super( LongVarcharTypeDescriptor.INSTANCE, StringTypeDescriptor.INSTANCE );
 	}
 
-	public String getName() { 
+	public String getName() {
 		return "text";
 	}
 
 	@Override
 	public String objectToSQLString(String value, Dialect dialect) throws Exception {
-		return StringType.INSTANCE.objectToSQLString( value, dialect );
+		return dialect.inlineLiteral( value );
 	}
 
 }

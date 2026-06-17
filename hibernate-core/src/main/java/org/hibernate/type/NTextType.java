@@ -30,7 +30,7 @@ public class NTextType extends AbstractSingleColumnStandardBasicType<String> imp
 
 	@Override
 	public String objectToSQLString(String value, Dialect dialect) throws Exception {
-		return StringNVarcharType.INSTANCE.objectToSQLString( value, dialect );
+		return dialect.inlineLiteral( value );
 	}
 
 }
