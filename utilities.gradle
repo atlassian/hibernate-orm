@@ -27,7 +27,12 @@ apply plugin: UtilitiesPlugin
 
 class UtilitiesPlugin implements Plugin {
     def void apply(Object project) {
-        project.convention.plugins.utilities = new UtilitiesPluginDef()
+        def utilitiesDef = new UtilitiesPluginDef()
+        project.extensions.add( 'utilities', utilitiesDef )
+        // Expose determinePackageName as a top-level extra property closure for Gradle 4.x
+        project.ext.determinePackageName = { SourceDirectorySet sds, File javaFile ->
+            utilitiesDef.determinePackageName(sds, javaFile)
+        }
     }
 }
 

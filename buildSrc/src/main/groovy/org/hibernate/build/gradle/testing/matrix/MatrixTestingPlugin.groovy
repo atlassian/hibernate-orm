@@ -35,10 +35,10 @@ import org.gradle.api.tasks.testing.Test
 import org.hibernate.build.gradle.testing.database.DatabaseProfile
 import org.hibernate.build.gradle.testing.database.DatabaseProfilePlugin
 import org.hibernate.build.gradle.util.Jdk
-import static org.gradle.api.plugins.JavaPlugin.COMPILE_CONFIGURATION_NAME
-import static org.gradle.api.plugins.JavaPlugin.RUNTIME_CONFIGURATION_NAME
-import static org.gradle.api.plugins.JavaPlugin.TEST_COMPILE_CONFIGURATION_NAME
-import static org.gradle.api.plugins.JavaPlugin.TEST_RUNTIME_CONFIGURATION_NAME
+import static org.gradle.api.plugins.JavaPlugin.IMPLEMENTATION_CONFIGURATION_NAME
+import static org.gradle.api.plugins.JavaPlugin.RUNTIME_CLASSPATH_CONFIGURATION_NAME
+import static org.gradle.api.plugins.JavaPlugin.TEST_IMPLEMENTATION_CONFIGURATION_NAME
+import static org.gradle.api.plugins.JavaPlugin.TEST_RUNTIME_CLASSPATH_CONFIGURATION_NAME
 
 /**
  * TODO : 1) add a base configuration of common attribute across all matrix node tasks (convention)
@@ -101,25 +101,25 @@ public class MatrixTestingPlugin implements Plugin<Project> {
      * Prepare compile configuration for matrix source set.
      */
     private Configuration prepareCompileConfiguration() {
-        return project.configurations.add( MATRIX_COMPILE_CONFIG_NAME )
+        return project.configurations.create( MATRIX_COMPILE_CONFIG_NAME )
                 .setDescription( "Dependencies used to compile the matrix tests" )
-                .extendsFrom( project.configurations.getByName( COMPILE_CONFIGURATION_NAME ) )
-                .extendsFrom( project.configurations.getByName( TEST_COMPILE_CONFIGURATION_NAME ) );
+                .extendsFrom( project.configurations.getByName( IMPLEMENTATION_CONFIGURATION_NAME ) )
+                .extendsFrom( project.configurations.getByName( TEST_IMPLEMENTATION_CONFIGURATION_NAME ) );
     }
 
     /**
      * Prepare runtime configuration for matrix source set.
      */
     private Configuration prepareRuntimeConfiguration() {
-		return project.configurations.add( MATRIX_RUNTIME_CONFIG_NAME )
+		return project.configurations.create( MATRIX_RUNTIME_CONFIG_NAME )
 				.setDescription( "Dependencies (baseline) used to run the matrix tests" )
 				.extendsFrom( matrixCompileConfig )
-				.extendsFrom( project.configurations.getByName( RUNTIME_CONFIGURATION_NAME ) )
-				.extendsFrom( project.configurations.getByName( TEST_RUNTIME_CONFIGURATION_NAME ) );
+				.extendsFrom( project.configurations.getByName( RUNTIME_CLASSPATH_CONFIGURATION_NAME ) )
+				.extendsFrom( project.configurations.getByName( TEST_RUNTIME_CLASSPATH_CONFIGURATION_NAME ) );
     }
 
 	private Task prepareGroupingTask() {
-		Task matrixTask = project.tasks.add( MATRIX_TASK_NAME );
+		Task matrixTask = project.tasks.create( MATRIX_TASK_NAME );
         matrixTask.group = "Verification"
         matrixTask.description = "Runs the unit tests on Database Matrix"
 		return matrixTask;
@@ -140,14 +140,14 @@ public class MatrixTestingPlugin implements Plugin<Project> {
     private Task prepareNodeTask(MatrixNode node) {
         String taskName = MATRIX_TASK_NAME + '_' + node.name
         log.debug( "Adding Matrix Testing task $taskName" );
-        final Test nodeTask = project.tasks.add( taskName, Test );
+        final Test nodeTask = project.tasks.create( taskName, Test );
         nodeTask.description = "Runs the matrix against ${node.name}"
         nodeTask.classpath = node.databaseProfile.testingRuntimeConfiguration + testSourceSet.runtimeClasspath
-        nodeTask.testClassesDir = testSourceSet.output.classesDir
+        nodeTask.testClassesDirs = testSourceSet.output.classesDirs
         nodeTask.ignoreFailures = true
         nodeTask.workingDir = node.baseOutputDirectory
-        nodeTask.testReportDir = new File(node.baseOutputDirectory, "reports")
-        nodeTask.testResultsDir = new File(node.baseOutputDirectory, "results")
+        nodeTask.reports.html.destination = new File(node.baseOutputDirectory, "reports")
+        nodeTask.reports.junitXml.destination = new File(node.baseOutputDirectory, "results")
 
         nodeTask.dependsOn( project.tasks.getByName( testSourceSet.classesTaskName ) );
         nodeTask.systemProperties = node.databaseAllocation.properties

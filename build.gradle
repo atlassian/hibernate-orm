@@ -5,17 +5,19 @@ allprojects {
     repositories {
     	mavenCentral()
     	mavenLocal()
-        mavenRepo name: 'jboss-nexus', url: "http://repository.jboss.org/nexus/content/groups/public/"
-        mavenRepo name: "jboss-snapshots", url: "http://snapshots.jboss.org/maven2/"
+        maven { name = 'jboss-nexus'; url "https://repository.jboss.org/nexus/content/groups/public/" }
+        maven { name = "jboss-snapshots"; url "https://snapshots.jboss.org/maven2/" }
     }
 }
 
 buildscript {
     repositories {
+        maven { url "https://repo1.maven.org/maven2/" }
+        maven { url "https://plugins.gradle.org/m2/" }
 	    mavenCentral()
 	    mavenLocal()
-        mavenRepo name: 'jboss-nexus', url: "http://repository.jboss.org/nexus/content/groups/public/"
-        mavenRepo name: "jboss-snapshots", url: "http://snapshots.jboss.org/maven2/"
+        maven { name = 'jboss-nexus'; url "https://repository.jboss.org/nexus/content/groups/public/" }
+        maven { name = "jboss-snapshots"; url "https://snapshots.jboss.org/maven2/" }
     }
     dependencies {
         classpath 'org.hibernate.build.gradle:gradle-upload-auth-plugin:1.1.1'
@@ -24,7 +26,7 @@ buildscript {
 
 idea {
     project {
-        languageLevel = "1.6"
+        languageLevel = "1.8"
         ipr {
             withXml { provider ->
                 provider.node.component.find { it.@name == 'VcsDirectoryMappings' }.mapping.@vcs = 'Git'
@@ -51,11 +53,11 @@ subprojects { subProject ->
     defaultTasks 'build'
 
     group = 'org.hibernate'
-    version = '4.2.21.Final'
+    version = '4.2.21.Final-atlassian-1'
     
     // The OSGi manifest exported package versions need to be only the numerical release -- no "SNAPSHOT" or "Final"
-    exportPackageVersion = version.replaceAll("-SNAPSHOT", "");
-    exportPackageVersion = exportPackageVersion.replaceAll(".Final", "");
+    ext.exportPackageVersion = version.replaceAll("-SNAPSHOT", "")
+                                        .replaceAll("\\.Final.*", "");
 
     // minimize changes, at least for now (gradle uses 'build' by default)..
     buildDir = "target"
@@ -67,10 +69,8 @@ subprojects { subProject ->
         apply from: "../utilities.gradle"
 
         configurations {
-            provided {
-                // todo : need to make sure these are non-exported
-                description = 'Non-exported compile-time dependencies.'
-            }
+            // 'provided' replaced by built-in Gradle 'compileOnly' configuration (available since Gradle 2.12).
+            // compileOnly deps are on compileClasspath but not runtimeClasspath and are never packaged.
             jbossLoggingTool {
                 description = "Dependencies for running the JBoss logging AnnotationProcessor tool"
             }
@@ -83,20 +83,17 @@ subprojects { subProject ->
             jaxb {
                 description = 'Dependencies for running ant xjc (jaxb class generation)'
             }
-            configurations {
-                all*.exclude group: 'xml-apis', module: 'xml-apis'
-            }
-
         }
+
 
         ext.toolsJar = file("${System.getProperty('java.home')}/../lib/tools.jar")
         // appropriately inject the common dependencies into each sub-project
         dependencies {
-            compile( libraries.logging )
-            testCompile( libraries.junit )
-            testCompile( libraries.byteman )
-            testCompile( libraries.byteman_install )
-            testCompile( libraries.byteman_bmunit )
+            implementation( libraries.logging )
+            testImplementation( libraries.junit )
+            testImplementation( libraries.byteman )
+            testImplementation( libraries.byteman_install )
+            testImplementation( libraries.byteman_bmunit )
             
             testRuntime( libraries.slf4j_api )
             testRuntime( libraries.slf4j_log4j12 )
@@ -114,43 +111,37 @@ subprojects { subProject ->
         }
 		if(ext.toolsJar.exists()){
 		    dependencies{
-		        testCompile files( toolsJar )
+		        testImplementation files( toolsJar )
 		    }
 		}
         ext.aptDumpDir = file( "${buildDir}/tmp/apt" )
 
-        sourceSets.main {
-            compileClasspath += configurations.provided
-        }
-
-        sourceSets.all {
-            ext.originalJavaSrcDirs = java.srcDirs
-            ext.generatedLoggingSrcDir = file( "${buildDir}/generated-src/logging/${name}" )
-            java.srcDir generatedLoggingSrcDir
+        afterEvaluate {
+            sourceSets.all {
+                ext.originalJavaSrcDirs = java.srcDirs
+                ext.generatedLoggingSrcDir = file( "${buildDir}/generated-src/logging/${name}" )
+                java.srcDir generatedLoggingSrcDir
+            }
         }
 
         task generateMainLoggingClasses(type: JavaCompile) {
-            classpath = compileJava.classpath + configurations.jbossLoggingTool
-            source = sourceSets.main.originalJavaSrcDirs
+            classpath = files({ compileJava.classpath }) + configurations.jbossLoggingTool
             destinationDir = aptDumpDir
-            options.define(
-                    compilerArgs: [
-                            "-nowarn",
-                            "-proc:only",
-                            "-encoding", "UTF-8",
-                            "-processor", "org.jboss.logging.processor.apt.LoggingToolsProcessor",
-                            "-s", "$sourceSets.main.generatedLoggingSrcDir.absolutePath",
-                            "-AloggingVersion=3.0",
-                            "-source", "1.6",
-                            "-target", "1.6",
-                            "-AtranslationFilesPath=${project.rootDir}/src/main/resources"
-
-                    ]
-            );
-            outputs.dir sourceSets.main.generatedLoggingSrcDir;
             doFirst {
-                source = sourceSets.main.originalJavaSrcDirs
+                source = sourceSets.main.ext.originalJavaSrcDirs
                 sourceSets.main.generatedLoggingSrcDir.mkdirs()
+                options.compilerArgs.addAll([
+                        "-nowarn",
+                        "-proc:only",
+                        "-encoding", "UTF-8",
+                        "-processor", "org.jboss.logging.processor.apt.LoggingToolsProcessor",
+                        "-s", "${sourceSets.main.generatedLoggingSrcDir.absolutePath}",
+                        "-AloggingVersion=3.0",
+                        "-source", "1.8",
+                        "-target", "1.8",
+                        "-AtranslationFilesPath=${project.rootDir}/src/main/resources"
+                ]);
+                outputs.dir sourceSets.main.generatedLoggingSrcDir
             }
         }
 
@@ -161,48 +152,50 @@ subprojects { subProject ->
         generateSources.dependsOn generateMainLoggingClasses
 
         compileJava.dependsOn generateMainLoggingClasses
-        compileJava.options.define(compilerArgs: ["-proc:none", "-encoding", "UTF-8"])
-        compileTestJava.options.define(compilerArgs: ["-proc:none", "-encoding", "UTF-8"])
+        compileJava.options.compilerArgs = ["-proc:none", "-encoding", "UTF-8"]
+        compileTestJava.options.compilerArgs = ["-proc:none", "-encoding", "UTF-8"]
 
-        jar {
+        // Defer OSGi manifest generation to execution time to avoid resolving
+        // the 'provided' configuration during the configuration phase (Gradle 4.x stricter lifecycle).
+        jar.doFirst {
             Set<String> exportPackages = new HashSet<String>()
             Set<String> privatePackages = new HashSet<String>()
-            
+
             // TODO: Could more of this be pulled into utilities.gradle?
             sourceSets.each { SourceSet sourceSet ->
-                        // skip certain source sets
-                        if ( ! ['test','matrix'].contains( sourceSet.name ) ) {
-                            sourceSet.java.each { javaFile ->
-                                // - .util for external module use (especially envers)
-                                final String[] temporaryExports = [
-                                    'org.hibernate.internal.util' ]
-                            
-                                final String packageName = determinePackageName( sourceSet.java, javaFile );
-                                if ( ! temporaryExports.contains( packageName )
-                                        && ( packageName.endsWith( ".internal" )
-                                        || packageName.contains( ".internal." )
-                                        || packageName.endsWith( ".test" )
-                                        || packageName.contains( ".test." ) ) ) {
-                                    privatePackages.add( packageName );
-                                }
-                                else {
-                            		exportPackages.add( packageName + ";version=\"" + exportPackageVersion + "\"" );
-                                }
-                            }
+                // skip certain source sets
+                if ( ! ['test','matrix'].contains( sourceSet.name ) ) {
+                    sourceSet.java.each { javaFile ->
+                        // - .util for external module use (especially envers)
+                        final String[] temporaryExports = [
+                            'org.hibernate.internal.util' ]
+
+                        final String packageName = determinePackageName( sourceSet.java, javaFile );
+                        if ( ! temporaryExports.contains( packageName )
+                                && ( packageName.endsWith( ".internal" )
+                                || packageName.contains( ".internal." )
+                                || packageName.endsWith( ".test" )
+                                || packageName.contains( ".test." ) ) ) {
+                            privatePackages.add( packageName );
+                        }
+                        else {
+                            exportPackages.add( packageName + ";version=\"" + exportPackageVersion + "\"" );
                         }
                     }
+                }
+            }
 
             manifest = osgiManifest {
                 // GRADLE-1411: Even if we override Imports and Exports
                 // auto-generation with instructions, classesDir and classpath
                 // need to be here (temporarily).
-                classesDir = sourceSets.main.output.classesDir
-                classpath = configurations.runtime
-                
+                classesDir = sourceSets.main.output.classesDirs.singleFile
+                classpath = configurations.runtimeClasspath
+
                 instruction 'Export-Package', exportPackages.toArray(new String[0])
                 instruction 'Private-Package', privatePackages.toArray(new String[0])
                 instruction 'Bundle-Vendor', 'Hibernate.org'
-                
+
                 instruction 'Implementation-Url', 'http://hibernate.org'
                 instruction 'Implementation-Version', version
                 instruction 'Implementation-Vendor', 'Hibernate.org'
@@ -229,15 +222,15 @@ subprojects { subProject ->
                     include '**/*.properties'
                     include '**/*.xml'
                 }
-                into sourceSets.test.output.classesDir
+                into sourceSets.test.output.classesDirs.singleFile
             }
         } )
 
         assemble.doLast( { install } )
         uploadArchives.dependsOn install
 
-        targetCompatibility = "1.6"
-        sourceCompatibility = "1.6"
+        targetCompatibility = "1.8"
+        sourceCompatibility = "1.8"
 
         idea {
             module {
@@ -262,13 +255,15 @@ subprojects { subProject ->
                     }
                 }
                 downloadSources = true
-                scopes.COMPILE.plus += configurations.provided
+                // compileOnly is handled natively by the Gradle 4.x IDEA plugin
+                // scopes.COMPILE.plus += configurations.compileOnly
             }
         }
 
         eclipse {
             classpath {
-                plusConfigurations.add( configurations.provided )
+                // compileOnly is handled natively by the Gradle 4.x Eclipse plugin
+                // plusConfigurations.add( configurations.compileOnly )
             }
         }
 	// eclipseClasspath will not add sources to classpath unless the dirs actually exist.
@@ -288,9 +283,9 @@ subprojects { subProject ->
                 url 'http://opensource.atlassian.com/projects/hibernate/browse/HHH'
             }
             scm {
-                url "http://github.com/hibernate/hibernate-core"
-                connection "scm:git:http://github.com/hibernate/hibernate-core.git"
-                developerConnection "scm:git:git@github.com:hibernate/hibernate-core.git"
+                url "https://github.com/atlassian/hibernate-orm"
+                connection "scm:git:https://github.com/atlassian/hibernate-orm.git"
+                developerConnection "scm:git:git@github.com:atlassian/hibernate-orm.git"
             }
             licenses {
                 license {
@@ -346,6 +341,6 @@ subprojects { subProject ->
 //  1) /gradlew which is the *NIX shell script for executing builds
 //  2) /gradlew.bat which is the windows bat script for for executing builds
 //  3) /wrapper which is a directory named by the "jarPath" config which contains other needed files.
-task wrapper(type: Wrapper) {
-    gradleVersion = '1.9'
+wrapper {
+    gradleVersion = '4.6'
 }

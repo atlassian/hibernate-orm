@@ -45,12 +45,30 @@ public class MatrixDotGradleProfile extends AbstractDatabaseProfileImpl {
 		super( matrixDotGradleFile.getParentFile(), project );
 		jdbcDependencies = prepareConfiguration( getName() );
         final ConventionImpl convention = new ConventionImpl( jdbcDependencies, project );
-        project.getConvention().getPlugins().put( MATRIX_NODE_CONVENTION_KEY, convention );
+        // In Gradle 4.x extensions can't be removed, so use a unique name per profile to avoid conflicts
+        final String extensionKey = MATRIX_NODE_CONVENTION_KEY + "_" + getName();
+        project.getExtensions().add( extensionKey, convention );
+        // Expose jdbcDependency() as top-level project ext closures so matrix.gradle scripts
+        // can call it without the "matrixNode." prefix. This replaces the Gradle 1.x Convention
+        // API which is no longer supported in Gradle 4.x.
+        project.getExtensions().getExtraProperties().set( "jdbcDependency", new groovy.lang.Closure<Void>( convention ) {
+            @Override
+            public Void call(Object... args) {
+                if ( args.length == 2 ) {
+                    convention.jdbcDependency( args[0], (groovy.lang.Closure) args[1] );
+                }
+                else {
+                    convention.jdbcDependency( args[0] );
+                }
+                return null;
+            }
+        } );
         try {
             project.apply( Collections.singletonMap( "from", matrixDotGradleFile ) );
         }
         finally {
-            project.getConvention().getPlugins().remove( MATRIX_NODE_CONVENTION_KEY );
+            // Clean up the ext property after apply so it doesn't leak
+            project.getExtensions().getExtraProperties().set( "jdbcDependency", null );
         }
 	}
 

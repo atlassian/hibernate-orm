@@ -67,44 +67,46 @@ def generateMavenDependency(String gradleDependency) {
             + "</dependency>\n"
 }
 
-task writeNewPom(type:Task, description: 'Writes pom.xml using merged Gradle dependency and MavenPom configuration.') {  
-    ext.pomDefinition = pom {
-	configurations {
-		// avoiding test dependencies in generated pom
-		compile
-		runtime
-	}
+task writeNewPom(type:Task, description: 'Writes pom.xml using merged Gradle dependency and MavenPom configuration.') {
+    doLast {
+        def pomDefinition = pom {
+		configurations {
+			// avoiding test dependencies in generated pom
+			compile
+			runtime
+		}
 
-       project {
-         groupId  project.group
-         packaging 'maven-plugin'
-         name 'Enhance Plugin of the Hibernate project for use with Maven build system.'
-         build {
-             plugins {
-                 plugin { 
-                    groupId 'org.apache.maven.plugins'
-                    artifactId 'maven-plugin-plugin'
-                    version '3.2'
-                    configuration {
-                       skipErrorNoDescriptorsFound 'true'
-                    }
-                    executions {
-                        execution {
-                            id 'mojo-descriptor'
-                            goals {
-                                goal 'descriptor'
+           project {
+             groupId  project.group
+             packaging 'maven-plugin'
+             name 'Enhance Plugin of the Hibernate project for use with Maven build system.'
+             build {
+                 plugins {
+                     plugin {
+                        groupId 'org.apache.maven.plugins'
+                        artifactId 'maven-plugin-plugin'
+                        version '3.2'
+                        configuration {
+                           skipErrorNoDescriptorsFound 'true'
+                        }
+                        executions {
+                            execution {
+                                id 'mojo-descriptor'
+                                goals {
+                                    goal 'descriptor'
+                                }
                             }
                         }
-                    }
+                     }
                  }
              }
-         }
-         properties {
-            'project.build.sourceEncoding' 'UTF-8'
-         }
-      }
+             properties {
+                'project.build.sourceEncoding' 'UTF-8'
+             }
+          }
+        }
+        pomDefinition.writeTo("$projectDir/src/main/resources/pom.xml")
     }
-    ext.pomDefinition.writeTo("$projectDir/src/main/resources/pom.xml")
 }
 
 writeNewPom.dependsOn processPluginXml
