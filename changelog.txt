@@ -5,6 +5,14 @@ match the actual issue resolution (i.e. a bug might not be a bug). Please
 refer to the particular case on JIRA using the issue tracking number to learn
 more about each case.
 
+Changes in version 4.2.21-atlassian-5
+
+    [CVE-2019-14900] escape single quotes at LiteralExpression
+
+Changes in version 4.2.21-atlassian-4
+
+    [CVE-2020-25638] fixed sanitization of SQL comments
+
 Changes in version 4.2.21 (2015.10.23)
 ------------------------------------------------------------------------------------------------------------------------
 

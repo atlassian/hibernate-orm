@@ -53,7 +53,7 @@ subprojects { subProject ->
     defaultTasks 'build'
 
     group = 'org.hibernate'
-    version = '4.2.21.Final-atlassian-4'
+    version = '4.2.21.Final-atlassian-5'
     
     // The OSGi manifest exported package versions need to be only the numerical release -- no "SNAPSHOT" or "Final"
     ext.exportPackageVersion = version.replaceAll("-SNAPSHOT", "")
@@ -313,7 +313,7 @@ subprojects { subProject ->
 
         uploadArchives {
             repositories.mavenDeployer {
-                name = 'jbossDeployer'
+                name = 'atlassianDeployer'
                 configuration = configurations.deployerJars
                 pom.project pomConfig
                 repository(id: "atlassian-m2-repository", url: "https://packages.atlassian.com/maven/3rdparty") {
