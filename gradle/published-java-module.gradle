@@ -1,0 +1,45 @@
+/*
+ * Hibernate, Relational Persistence for Idiomatic Java
+ *
+ * License: GNU Lesser General Public License (LGPL), version 2.1 or later
+ * See the lgpl.txt file in the root directory or http://www.gnu.org/licenses/lgpl-2.1.html
+ */
+
+apply from: rootProject.file( 'gradle/publishing-repos.gradle' )
+apply from: rootProject.file( 'gradle/publishing-pom.gradle' )
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+// Sources and Javadoc JARs
+
+task sourcesJar(type: Jar) {
+    from sourceSets.main.allSource
+    archiveClassifier.set( 'sources' )
+}
+
+task javadocJar(type: Jar) {
+    from tasks.javadoc.outputs
+    archiveClassifier.set( 'javadoc' )
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+// Publishing
+
+publishing {
+    publications {
+        publishedArtifacts {
+            from components.java
+
+            artifact( sourcesJar ) {
+                classifier 'sources'
+            }
+
+            artifact( javadocJar ) {
+                classifier 'javadoc'
+            }
+        }
+    }
+}
+
+// Convenience aliases
+task publish( dependsOn: publishAllPublicationsToJbossSnapshotsRepositoryRepository )
+task release( dependsOn: publishAllPublicationsToJbossReleasesRepositoryRepository )

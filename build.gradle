@@ -53,7 +53,7 @@ subprojects { subProject ->
     defaultTasks 'build'
 
     group = 'org.hibernate'
-    version = '4.2.21.Final-atlassian-1'
+    version = '4.2.21.Final-atlassian-4'
     
     // The OSGi manifest exported package versions need to be only the numerical release -- no "SNAPSHOT" or "Final"
     ext.exportPackageVersion = version.replaceAll("-SNAPSHOT", "")
@@ -316,8 +316,12 @@ subprojects { subProject ->
                 name = 'jbossDeployer'
                 configuration = configurations.deployerJars
                 pom.project pomConfig
-                repository(id: "jboss-releases-repository", url: "https://repository.jboss.org/nexus/service/local/staging/deploy/maven2/")
-                snapshotRepository(id: "jboss-snapshots-repository", url: "https://repository.jboss.org/nexus/content/repositories/snapshots")
+                repository(id: "atlassian-m2-repository", url: "https://packages.atlassian.com/maven/3rdparty") {
+                    authentication(userName: project.findProperty('atlassianMavenUsername') ?: '', password: project.findProperty('atlassianMavenPassword') ?: '')
+                }
+                snapshotRepository(id: "atlassian-m2-snapshot-repository", url: "https://packages.atlassian.com/maven/3rdparty-snapshot") {
+                    authentication(userName: project.findProperty('atlassianMavenUsername') ?: '', password: project.findProperty('atlassianMavenPassword') ?: '')
+                }
             }
         }
 
