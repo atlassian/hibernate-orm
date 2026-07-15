@@ -75,14 +75,32 @@ public class LiteralExpression<T> extends ExpressionImpl<T> implements Serializa
 	@SuppressWarnings({ "unchecked" })
 	public String renderProjection(CriteriaQueryCompiler.RenderingContext renderingContext) {
 		// some drivers/servers do not like parameters in the select clause
-		final ValueHandlerFactory.ValueHandler handler =
-				ValueHandlerFactory.determineAppropriateHandler( literal.getClass() );
-		if ( ValueHandlerFactory.isCharacter( literal ) ) {
-			return '\'' + handler.render( literal ) + '\'';
-		}
-		else {
+		if ( ValueHandlerFactory.isNumeric( literal ) ) {
+			// Numeric literals are safe to render directly - no SQL injection possible
+			final ValueHandlerFactory.ValueHandler handler =
+					ValueHandlerFactory.determineAppropriateHandler( literal.getClass() );
 			return handler.render( literal );
 		}
+		else if ( ValueHandlerFactory.isCharacter( literal ) ) {
+			// CVE-2019-14900: escape single quotes to prevent SQL injection in SELECT/GROUP BY
+			final String literalStr = literal.toString();
+			return '\'' + escapeSqlString( literalStr ) + '\'';
+		}
+		else {
+			// For all other non-numeric types (e.g. dates, enums), fall back to parameter binding
+			// CVE-2019-14900: avoid embedding arbitrary values directly into SQL
+			final String parameterName = renderingContext.registerLiteralParameterBinding( getLiteral(), getJavaType() );
+			return ':' + parameterName;
+		}
+	}
+
+	/**
+	 * Escape a string literal for safe embedding in SQL by doubling single-quote characters.
+	 * This prevents SQL injection when literals appear in SELECT or GROUP BY clauses.
+	 * Fix for CVE-2019-14900.
+	 */
+	private static String escapeSqlString(String literal) {
+		return literal.replace( "'", "''" );
 	}
 
 	@Override

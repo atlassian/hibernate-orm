@@ -38,6 +38,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.regex.Pattern;
 
 import org.jboss.logging.Logger;
 import org.hibernate.AssertionFailure;
@@ -113,6 +114,9 @@ import org.hibernate.type.VersionType;
 public abstract class Loader {
 
 	protected static final CoreMessageLogger LOG = Logger.getMessageLogger(CoreMessageLogger.class, Loader.class.getName());
+
+	private static final Pattern ESCAPE_CLOSING_COMMENT_PATTERN = Pattern.compile( "\\*/" );
+	private static final Pattern ESCAPE_OPENING_COMMENT_PATTERN = Pattern.compile( "/\\*" );
 	protected static final boolean DEBUG_ENABLED = LOG.isDebugEnabled();
 	private final SessionFactoryImplementor factory;
 	private volatile ColumnNameCache columnNameCache;
@@ -299,11 +303,26 @@ public abstract class Loader {
 		else {
 			return new StringBuilder( comment.length() + sql.length() + 5 )
 					.append( "/* " )
-					.append( comment )
+					.append( escapeComment( comment ) )
 					.append( " */ " )
 					.append( sql )
 					.toString();
 		}
+	}
+
+	/**
+	 * Escapes user-supplied comment strings to prevent SQL injection via comment delimiters.
+	 * Addresses CVE-2020-25638: a SQL injection vulnerability when hibernate.use_sql_comments=true.
+	 *
+	 * @param comment the raw comment string provided by the user
+	 * @return the comment with closing and opening comment sequences escaped
+	 */
+	public static String escapeComment(String comment) {
+		if ( comment != null && !comment.isEmpty() ) {
+			final String escaped = ESCAPE_CLOSING_COMMENT_PATTERN.matcher( comment ).replaceAll( "\\*\\\\/" );
+			return ESCAPE_OPENING_COMMENT_PATTERN.matcher( escaped ).replaceAll( "/\\\\\\*" );
+		}
+		return comment;
 	}
 
 	/**
