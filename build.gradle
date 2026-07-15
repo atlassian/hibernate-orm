@@ -53,7 +53,7 @@ subprojects { subProject ->
     defaultTasks 'build'
 
     group = 'org.hibernate'
-    version = '4.2.21.Final-atlassian-5'
+    version = '4.2.21.Final-atlassian-7'
     
     // The OSGi manifest exported package versions need to be only the numerical release -- no "SNAPSHOT" or "Final"
     ext.exportPackageVersion = version.replaceAll("-SNAPSHOT", "")
@@ -127,10 +127,11 @@ subprojects { subProject ->
         task generateMainLoggingClasses(type: JavaCompile) {
             classpath = files({ compileJava.classpath }) + configurations.jbossLoggingTool
             destinationDir = aptDumpDir
-            doFirst {
-                source = sourceSets.main.ext.originalJavaSrcDirs
-                sourceSets.main.generatedLoggingSrcDir.mkdirs()
-                options.compilerArgs.addAll([
+            // Source must be set at configuration time (not in doFirst) so Gradle 4.x does not skip
+            // the task as NO-SOURCE. Use afterEvaluate to ensure originalJavaSrcDirs is already set.
+            afterEvaluate {
+                source sourceSets.main.ext.originalJavaSrcDirs
+                options.compilerArgs = [
                         "-nowarn",
                         "-proc:only",
                         "-encoding", "UTF-8",
@@ -140,8 +141,10 @@ subprojects { subProject ->
                         "-source", "1.8",
                         "-target", "1.8",
                         "-AtranslationFilesPath=${project.rootDir}/src/main/resources"
-                ]);
-                outputs.dir sourceSets.main.generatedLoggingSrcDir
+                ]
+            }
+            doFirst {
+                sourceSets.main.generatedLoggingSrcDir.mkdirs()
             }
         }
 
