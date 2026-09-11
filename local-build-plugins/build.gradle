@@ -26,7 +26,7 @@ dependencies {
 	implementation 'jakarta.json.bind:jakarta.json.bind-api:2.0.0'
 	implementation 'jakarta.json:jakarta.json-api:2.0.1'
 	implementation 'org.eclipse:yasson:2.0.4'
-	implementation 'org.jsoup:jsoup:1.15.3'
+	implementation 'org.jsoup:jsoup:1.23.1'
 
 	implementation "de.thetaphi:forbiddenapis:3.8"
 
